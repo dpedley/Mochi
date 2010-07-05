@@ -1,1 +1,72 @@
 MOCHI - Cocoa CoreData library
+
+http://dpedley.com/mochi
+
+Mochi is meant to help you use the power of Core Data, without drilling into the science of database and object management. The core data access objects such as NSManagedObjectContext, NSPersistentStoreCoordinator and NSManagedObjectModel are held within the Mochi singleton. These are used by helper functions that are added to your NSManagedObjects that access the Mochi singleton. In essence you can create your objects using XCode's data modeler, and immediately save, delete, find and update the applications database without working with the Core Data stack directly.
+To do this, many concession are made, and in general things are often oversimplified. The intent is to create a useful tool that many common application can use, but it doesn't apply to all problems. Here are some general rules, if they seem to apply, then I bet you'll enjoy using Mochi.
+One note, even the features Mochi doesn't handle can still be applied to the underlying Managed Context, Presistant Stores etc.
+
+Should I use Mochi? (What Mochi doesn't do)
+
+Managed context are shared between threads. Heavily multithreaded apps may have collisions
+No transaction management, rollbacks, etc.
+No sophisticated queries (See query note below on what is supported.
+No database / model versioning knowledge built into the system
+Only supports sqlite local source for now.
+Uses categories on standard objects which doesn't play well with bundle (un)loading
+
+If those things don't sound familiar don't worry. Your app is probably like millions of others that need to do basic data and object manipulation. Lets look at a few examples.
+
+=====================================
+
+Mochi Multihomes initialization
+
+Examples: 
+// global database name and model name setup
+[Mochi mochiSettingsFromDictionary:[NSDictionary dictionaryWithObjectsAndKeys:
+			   @"MyProjectName.sqlite", @"database",
+			   @"MyProjectName", @"model", nil]];	
+
+This will set the global database name to @"MyProjectName.sqlite" and look for the model with the resource name @"MyProjectName"
+The assumed logic is: Mochi will look for a database in the documents directory and if it isn't found is tries to copy one from the resource directory of the application, this is for default preloaded databases. (Zip codes might be a good example there.) If there isn't a default, it creates an empty one. It will map the classes in the model file to this database.
+
+// database name and model name setup for a specific class
+MyApplicationSpecificObject *obj = nil;
+[MyApplicationSpecificObject mochiSettingsFromDictionary:[NSDictionary dictionaryWithObjectsAndKeys:
+							   @"MyAppObjectDB.sqlite", @"database",
+							   @"MyAppObjectModel", @"model", nil]];	
+
+Here we have an object type made from the xcode managed object create. We setup mochi specific database and model mapping for this class only. (May think a feed, or log, or other high use transient data being separate from the user data for quick dump purposes. MochiAudio creates and sets up it's own database and model for it's own object soas to keep off your applications own database needs.)
+
+That's mochi initialization, from that you can use the class methods to easily find and create objects. I'm going to expose more useful functions as we need them. 
+
+=====================================
+
+
+Mochi syntax, Description of the use case
+The common nouns (like house, bug, tree) in the examples should be considered to be object already created in in your project.
+
+Tree *redwood = [Tree addNew];
+redwood.scientificName = @"Sequoiadendron giganteum";
+redwood.isConifer = [NSNumber numberWithBool:YES];
+[Tree save];
+
+A NSManaged object Tree is inserted into the database. Attributes scientificName and isConifer are set, and it is saved.
+
+NSArray *houses = [House allObjects];
+for (House *rental in houses)
+{
+	NSLog(@"Property address: %@", rental.streetAddress);
+}
+
+This will iterate through all the rental properties of the NSManagedObject subclass House, and log the value of each rental's street address.
+
+Bug *newIssue = [Bug withAttributeNamed:@"title" matchingValue:@"Overflow"];
+if (newIssue)
+{
+	newIssue.closeDate = [NSDate date];
+	[Bug save];
+}
+
+An instance of the NSManaged object Bug  is found in the database by matching a field and value, it's closeDate attribute is set, and it is saved.
+

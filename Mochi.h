@@ -2,6 +2,7 @@
 //  Mochi.h
 //
 //  Created by Douglas Pedley on 5/27/10.
+//  http://dpedley.com/mochi
 //
 
 #import <Foundation/Foundation.h>
@@ -36,6 +37,7 @@
 
 @interface NSManagedObject (Mochi)
 
++(void)mochiSettingsFromDictionary:(NSDictionary *)settingsDictionary;
 +(id)addNew;
 +(id)addNewWithIndex:(NSValue *)indexValue;
 +(id)withMatchingIndex:(NSValue *)indexValue;

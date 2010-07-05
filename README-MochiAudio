@@ -1,0 +1,39 @@
+http://dpedley.com/mochi
+
+MochiAudio
+
+This is a recording and playback library for one at a time, longer audio. Not suitable for arcade type fast audio. Not suitable for mixing.
+The CoreAudio components [MochiAudio player] and [MochiAudio recorder] are exposed for direct access to the apple sdk objects.
+
+This allows us to record, playback, save by name, retrieve by name, etc. Name is a string, it is up to the application to decide on the use of the string. In the sample, this maps exactly to the name text field displayed for the user. Names are unique, and will overwrite previous sound objects with the same name.
+
+The recording is only available as a global function of the MochiAudio class. This means each recording must be specifically saved to a named recording or it will be overwritten by the next recording. There are convenience methods to read and write this global recording to the file system (or any NSUrl object)
+
+The core data object of type MochiAudioObject represents the sound as a named object in the db. It has an audio NSData property, and methods to play, pause etc. There are convenience methods to read and write this global recording to the file system (or any NSUrl object)
+
+Here's an example that assumes a recording named @"doh" already exists.
+
+MochiAudioObject *doh = [MochiAudio loadRecordingByName:@"doh"];
+[doh playRecording]; // see MochiAudio.h for looping and pause resume methods
+
+Here's an example of recording, and saving the D'oh sound.
+
+-(IBAction)recordButtonPressed:(id)sender
+{
+	[MochiAudio startRecording];
+}
+
+-(IBAction)stopRecordingPressed
+{
+	[MochiAudio stopRecording];
+	[MochiAudio saveRecordingWithName:@"doh"];
+}
+
+ // This can save to a filesystem URL.
+-(IBAction)saveDohToURL:(NSURL *)url
+{
+	MochiAudioObject *doh = [MochiAudio loadRecordingByName:@"doh"];
+	[doh writeToURL:url];	
+}
+
+// The CoreAudio components [doh player] and [doh recorder] are exposed for direct access to the apple sdk objects.

@@ -11,6 +11,22 @@
 static Mochi *sharedMochi;
 static NSDictionary *mochiClasses;
 
+@interface Mochi (MochiPrivateFunctions)
+
++(NSURL *)defaultSettingsURL;
+
+@end
+
+@implementation Mochi (MochiPrivateFunctions)
+
++(NSURL *)defaultSettingsURL
+{
+	NSString *urlPath = [MOCHI_DOCUMENTS_DIRECTORY stringByAppendingPathComponent:@"mochi.plist"];
+	return [NSURL fileURLWithPath:urlPath];
+}
+
+@end
+
 @implementation Mochi
 
 @synthesize managedObjectModel, managedObjectContext, persistentStoreCoordinator, dataFile, dataModel, disableUndoManager;
@@ -18,17 +34,33 @@ static NSDictionary *mochiClasses;
 #pragma mark Initial settings
 +(void)settingsFromDictionary:(NSDictionary *)settingsDictionary
 {
-	@synchronized(sharedMochi) 
+	if (sharedMochi) 
 	{
-		sharedMochi = [[Mochi alloc] initWithDictionary:settingsDictionary];
-		NSDictionary *classMappings = [settingsDictionary objectForKey:@"classMappings"];
-		
+		[sharedMochi release];
+	}
+	
+	sharedMochi = [[Mochi alloc] initWithDictionary:settingsDictionary];
+	
+	if (mochiClasses)
+	{
+		[mochiClasses release];
+	}
+	
+	NSDictionary *classMappings = [settingsDictionary objectForKey:@"classMappings"];
+	if (classMappings!=nil)
+	{
 		NSArray *allKeys = [classMappings allKeys];
 		NSMutableDictionary *buildMochi = [NSMutableDictionary dictionaryWithCapacity:[allKeys count]];
 		for (NSString *key in allKeys)
 		{
-			Mochi *classMochi = [[Mochi alloc] initWithDictionary:[classMappings objectForKey:key]];
-			[buildMochi setObject:classMochi forKey:key];
+			NSDictionary *classSettingsDict = [classMappings objectForKey:key];
+			
+			if (classSettingsDict)
+			{
+				Mochi *classMochi = [[Mochi alloc] initWithDictionary:classSettingsDict];
+				[buildMochi setObject:classMochi forKey:key];
+				[classMochi release];
+			}
 		}
 		mochiClasses = [[NSDictionary alloc] initWithDictionary:buildMochi]; 
 	}
@@ -123,7 +155,8 @@ static NSDictionary *mochiClasses;
         return persistentStoreCoordinator;
     }
 	
-    NSURL *pscUrl = [NSURL fileURLWithPath:[MOCHI_DOCUMENTS_DIRECTORY stringByAppendingPathComponent: self.dataFile]];
+	NSString *mochiDir = [MOCHI_DOCUMENTS_DIRECTORY stringByAppendingPathComponent:self.dataFile];
+    NSURL *pscUrl = [NSURL fileURLWithPath:mochiDir];
     persistentStoreCoordinator = [[NSPersistentStoreCoordinator alloc] initWithManagedObjectModel:[self managedObjectModel]];
 	
 	NSError *error;
@@ -148,24 +181,24 @@ static NSDictionary *mochiClasses;
 
 +(id)sharedMochi 
 { 
+	@synchronized(sharedMochi) 
+	{
+		if (sharedMochi == nil) 
+		{
+			NSDictionary *defaultSettingsDict = [NSDictionary dictionaryWithContentsOfURL:[self defaultSettingsURL]];
+			[self settingsFromDictionary:defaultSettingsDict];
+		}
+	}
 	return sharedMochi;
 }
 
+
 +(id)mochiForClass:(Class)mochiClass
 {
-	@synchronized(self) 
-	{ 
-		if (sharedMochi == nil) 
-		{
-			NSUserDefaults *defaults = [NSUserDefaults standardUserDefaults];
-			[self settingsFromDictionary:[defaults dictionaryRepresentation]];
-		}
-	}
-
 	id ret = [mochiClasses objectForKey:[mochiClass description]];
 	if (ret==NULL) 
 	{
-		return sharedMochi;
+		return [self sharedMochi];
 	}
 	return ret;
 }
@@ -218,6 +251,23 @@ static NSError *mochiLastError;
 
 
 @implementation NSManagedObject (Mochi)
+
++(void)mochiSettingsFromDictionary:(NSDictionary *)settingsDictionary
+{
+	NSMutableDictionary *buildMochi = nil;
+	Mochi *classMochi = [[Mochi alloc] initWithDictionary:settingsDictionary];
+	if (mochiClasses==nil)
+	{
+		buildMochi = [NSMutableDictionary dictionaryWithObject:classMochi forKey:[self description]];
+	}
+	else 
+	{
+		buildMochi = [NSDictionary dictionaryWithDictionary:mochiClasses];
+		[buildMochi setObject:classMochi forKey:[self description]];
+	}
+	mochiClasses = [[NSDictionary alloc] initWithDictionary:buildMochi]; 
+	[classMochi release];
+}
 
 +(NSEntityDescription *)mochiEntityDescription
 {
@@ -291,8 +341,7 @@ static NSError *mochiLastError;
 	NSArray *fetchResponse = [[[Mochi mochiForClass:[self class]] managedObjectContext] executeFetchRequest:req error:&mochiLastError];
 	if ((fetchResponse != nil) || ([fetchResponse count]>0))
 	{
-		id retArray = [fetchResponse mutableCopy];
-		return retArray;
+		return [NSArray arrayWithArray:fetchResponse];
 	}
 	return nil;
 }
@@ -309,7 +358,8 @@ static NSError *mochiLastError;
 
 +(void)save 
 {
-	[[Mochi mochiForClass:[self class]] save];
+	Mochi *mochi = [Mochi mochiForClass:[self class]];
+	[mochi.managedObjectContext save:&mochiLastError];
 }
 
 -(void)remove
