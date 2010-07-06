@@ -3,7 +3,6 @@
 //  MochiTestbedMacOSX
 //
 //  Created by Douglas Pedley on 7/6/10.
-//  Copyright 2010 __MyCompanyName__. All rights reserved.
 //
 // Adapted from sources such as:
 // http://developer.apple.com/iphone/library/documentation/DataManagement/Conceptual/iPhoneCoreData01/Articles/04_Adding.html
@@ -32,10 +31,104 @@
 @end
 
 
+
+
+
+static MochiLocation *sharedInstance = nil;
+
 @implementation MochiLocation
 
 #pragma mark -
+#pragma mark class instance methods
+
+#pragma mark -
+#pragma mark Singleton methods
+
+@synthesize locationManager;
+-(CLLocationManager *)locationManager 
+{
+	
+    if (locationManager != nil) {
+        return locationManager;
+    }
+	
+    locationManager = [[CLLocationManager alloc] init];
+    locationManager.desiredAccuracy = kCLLocationAccuracyNearestTenMeters;
+    locationManager.delegate = self;
+	
+    return locationManager;
+}
+
+-(void)dealloc 
+{
+    [locationManager release];
+    [super dealloc];
+}
+
++(MochiLocation *)shared
+{
+    @synchronized(self)
+    {
+        if (sharedInstance == nil)
+			sharedInstance = [[MochiLocation alloc] init];
+    }
+    return sharedInstance;
+}
+
++(id)allocWithZone:(NSZone *)zone 
+{
+    @synchronized(self) 
+	{
+        if (sharedInstance == nil) 
+		{
+            sharedInstance = [super allocWithZone:zone];
+            return sharedInstance;  // assignment and return on first allocation
+        }
+    }
+    return nil; // on subsequent allocation attempts return nil
+}
+
+-(id)copyWithZone:(NSZone *)zone
+{
+    return self;
+}
+
+-(id)retain 
+{
+    return self;
+}
+
+-(unsigned)retainCount 
+{
+    return UINT_MAX;  // denotes an object that cannot be released
+}
+
+-(void)release 
+{
+    //do nothing
+}
+
+-(id)autorelease 
+{
+    return self;
+}
+
+
+#pragma mark -
 #pragma mark CLLocationManagerDelegate methods
+
++(void)startRecordingLocation
+{
+	[[[self shared] locationManager] startUpdatingLocation];
+}
+
++(void)stopRecordingLocation
+{
+	[[[self shared] locationManager] stopUpdatingLocation];
+}
+
+
+
 /*
  - (void)locationManager:(CLLocationManager *)managerdidEnterRegion:(CLRegion *)region
  Parameters

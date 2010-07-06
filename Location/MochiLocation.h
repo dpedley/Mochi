@@ -3,7 +3,6 @@
 //  MochiTestbedMacOSX
 //
 //  Created by Douglas Pedley on 7/6/10.
-//  Copyright 2010 __MyCompanyName__. All rights reserved.
 //
 //  CoreData access layer from Mochi
 //  http://dpedley.com/mochi
@@ -25,7 +24,13 @@
 
 @interface MochiLocation : NSObject <CLLocationManagerDelegate>
 {
+	CLLocationManager *locationManager;
 
 }
+@property (nonatomic, readonly) CLLocationManager *locationManager;
+
++(void)startRecordingLocation;
++(void)stopRecordingLocation;
++(MochiLocation *)shared;
 
 @end
