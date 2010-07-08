@@ -38,6 +38,9 @@
 @interface NSManagedObject (Mochi)
 
 +(void)mochiSettingsFromDictionary:(NSDictionary *)settingsDictionary;
++(NSEntityDescription *)mochiEntityDescription;
++(NSString *)indexName;
++(void)setIndexName:(NSString *)value;
 +(id)addNew;
 +(id)addNewWithIndex:(NSValue *)indexValue;
 +(id)withMatchingIndex:(NSValue *)indexValue;
@@ -48,6 +51,7 @@
 +(void)save;
 -(void)remove;
 +(void)removeAll;
++(id)findOrCreateWithDictionary:(NSDictionary *)createDict;
 
 @end
 

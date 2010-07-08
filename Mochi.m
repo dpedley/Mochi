@@ -143,7 +143,12 @@ static NSDictionary *mochiClasses;
 		return managedObjectModel;
 	}
 	
-	NSURL *momFile = [NSURL fileURLWithPath:[[NSBundle bundleForClass:[Mochi class]] pathForResource:self.dataModel ofType:@"mom"]];
+	NSString *fileResource = [[NSBundle bundleForClass:[Mochi class]] pathForResource:self.dataModel ofType:@"mom"];
+	if (fileResource==nil)
+	{
+		fileResource = [[NSBundle bundleForClass:[Mochi class]] pathForResource:self.dataModel ofType:@"momd"];
+	}
+	NSURL *momFile = [NSURL fileURLWithPath:fileResource];
 	managedObjectModel = [[NSManagedObjectModel alloc] initWithContentsOfURL:momFile];
 	return managedObjectModel;
 }
@@ -244,8 +249,8 @@ static NSError *mochiLastError;
 @interface NSManagedObject (MochiPrivate)
 
 +(NSEntityDescription *)entityDescription;
-+(NSString *)mochiIndexName;
-+(void)setMochiIndexName:(NSString *)value;
++(NSString *)indexName;
++(void)setIndexName:(NSString *)value;
 
 @end
 
@@ -274,12 +279,12 @@ static NSError *mochiLastError;
 	return [NSEntityDescription entityForName:[self description] inManagedObjectContext:[[Mochi mochiForClass:[self class]] managedObjectContext]];
 }
 
-+(NSString *)mochiIndexName
++(NSString *)indexName
 {
 	return [mochiClassIDs valueForKey:[self description]];
 }
 
-+(void)setMochiIndexName:(NSString *)value
++(void)setIndexName:(NSString *)value
 {
 	if (mochiClassIDs==nil) 
 	{
@@ -299,7 +304,7 @@ static NSError *mochiLastError;
 +(id)addNewWithIndex:(NSNumber *)ID 
 {
 	id newObject = [self addNew];
-	NSString *fieldNameID = [self mochiIndexName];
+	NSString *fieldNameID = [self indexName];
 	if (fieldNameID!=nil)
 	{
 		[(NSManagedObject *)newObject setValue:ID forKey:fieldNameID];
@@ -309,7 +314,7 @@ static NSError *mochiLastError;
 
 +(id)withMatchingIndex:(NSValue *)indexValue
 {
-	NSString *ndxName = [self mochiIndexName];
+	NSString *ndxName = [self indexName];
 	if (ndxName!=nil)
 	{
 		return [self withAttributeNamed:ndxName matchingValue:indexValue];
@@ -379,6 +384,45 @@ static NSError *mochiLastError;
 	}
 	[mochi.managedObjectContext save:&mochiLastError]; 
 }
+
++(id)findOrCreateWithDictionary:(NSDictionary *)createDict
+{
+	NSManagedObject *targetObject = nil;
+	NSString *ndxName = [self indexName];
+	if (ndxName!=nil)
+	{
+		NSValue *ndxValue = [createDict objectForKey:ndxName];
+		if (ndxValue!=nil)
+		{
+			targetObject = [self withAttributeNamed:ndxName matchingValue:ndxValue];
+			
+			if (targetObject==nil)
+			{
+				targetObject = [self addNewWithIndex:ndxValue];
+			}
+		}
+	}
+	
+	if (targetObject==nil)
+	{
+		targetObject = [self addNew];
+	}
+	
+	[targetObject setValuesForKeysWithDictionary:createDict];
+	return targetObject;
+}
+
+#pragma mark undefined keys override default behavior
+- (void)setValue:(id)value forUndefinedKey:(NSString *)key
+{
+}
+
+- (id)valueForUndefinedKey:(NSString *)key
+{
+	return NULL;
+}
+
+
 
 @end
 
