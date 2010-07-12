@@ -141,7 +141,7 @@ static MochiAudio *sharedInstance = nil;
 		{
 			sharedInstance = [[MochiAudio alloc] init];
 			[MochiAudioObject mochiSettingsFromDictionary:[NSDictionary dictionaryWithObjectsAndKeys:
-							   @"MochiAudio.sqlite", @"database",
+							   @"MochiAudio", @"database",
 							   @"MochiAudio", @"model", nil]];	
 			 
 		}
@@ -320,7 +320,7 @@ static MochiAudio *sharedInstance = nil;
 {
 	NSURL *origURL = [NSURL fileURLWithPath:[MochiAudio transientAudioFilePath]];
 	NSFileManager *fileMgr = [[NSFileManager alloc] init];
-	[fileMgr copyItemAtURL:origURL toURL:url error:nil];
+	[fileMgr copyItemAtPath:[origURL path] toPath:[url path] error:nil];
 }
 
 +(MochiAudioObject *)saveRecordingWithName:(NSString *)recordingName

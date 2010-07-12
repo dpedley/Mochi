@@ -71,6 +71,9 @@ static MochiLocation *sharedInstance = nil;
     {
         if (sharedInstance == nil)
 			sharedInstance = [[MochiLocation alloc] init];
+			[MochiLocationObject mochiSettingsFromDictionary:[NSDictionary dictionaryWithObjectsAndKeys:
+														   @"MochiLocation", @"database",
+														   @"MochiLocation", @"model", nil]];	
     }
     return sharedInstance;
 }

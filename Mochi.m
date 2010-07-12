@@ -246,16 +246,10 @@ static NSDictionary *mochiClasses;
 static NSMutableDictionary *mochiClassIDs = nil;
 static NSError *mochiLastError;
 
-@interface NSManagedObject (MochiPrivate)
-
-+(NSEntityDescription *)entityDescription;
-+(NSString *)indexName;
-+(void)setIndexName:(NSString *)value;
-
-@end
-
-
 @implementation NSManagedObject (Mochi)
+
+#pragma mark -
+#pragma mark Configuration elements
 
 +(void)mochiSettingsFromDictionary:(NSDictionary *)settingsDictionary
 {
@@ -279,6 +273,9 @@ static NSError *mochiLastError;
 	return [NSEntityDescription entityForName:[self description] inManagedObjectContext:[[Mochi mochiForClass:[self class]] managedObjectContext]];
 }
 
+#pragma mark -
+#pragma mark Index field name property
+
 +(NSString *)indexName
 {
 	return [mochiClassIDs valueForKey:[self description]];
@@ -296,6 +293,9 @@ static NSError *mochiLastError;
 	}
 }
 
+#pragma mark -
+#pragma mark Object lifecycle, Add, Remove, Save
+
 +(id)addNew 
 {
 	return [NSEntityDescription insertNewObjectForEntityForName:[self description] inManagedObjectContext:[[Mochi mochiForClass:[self class]] managedObjectContext]];
@@ -310,55 +310,6 @@ static NSError *mochiLastError;
 		[(NSManagedObject *)newObject setValue:ID forKey:fieldNameID];
 	}
 	return newObject;
-}
-
-+(id)withMatchingIndex:(NSValue *)indexValue
-{
-	NSString *ndxName = [self indexName];
-	if (ndxName!=nil)
-	{
-		return [self withAttributeNamed:ndxName matchingValue:indexValue];
-	}
-	return nil;
-}
-
-+(int)count
-{
-	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
-	req.entity = [self mochiEntityDescription];
-	return [[[Mochi mochiForClass:[self class]] managedObjectContext] countForFetchRequest:req error:&mochiLastError];
-}
-
-+(NSArray *)allObjects
-{
-	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
-	req.entity = [self mochiEntityDescription];
-	return [[[Mochi mochiForClass:[self class]] managedObjectContext] executeFetchRequest:req error:&mochiLastError];
-}
-
-+(id)arrayWithAttributeNamed:(NSString *)field matchingValue:(id)value
-{
-	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
-	req.entity = [self mochiEntityDescription];
-	NSPredicate *predicate = [NSPredicate predicateWithFormat:[NSString stringWithFormat:@"%@ = $V", field, nil]];
-	predicate = [predicate predicateWithSubstitutionVariables:[NSDictionary dictionaryWithObject:value forKey:@"V"]];
-	[req setPredicate:predicate];
-	NSArray *fetchResponse = [[[Mochi mochiForClass:[self class]] managedObjectContext] executeFetchRequest:req error:&mochiLastError];
-	if ((fetchResponse != nil) || ([fetchResponse count]>0))
-	{
-		return [NSArray arrayWithArray:fetchResponse];
-	}
-	return nil;
-}
-
-+(id)withAttributeNamed:(NSString *)field matchingValue:(id)value
-{
-	NSArray *all = [self arrayWithAttributeNamed:field matchingValue:value];
-	if ((all==nil) || ([all count]==0)) 
-	{
-		return nil;
-	}
-	return [all objectAtIndex:0];
 }
 
 +(void)save 
@@ -410,6 +361,120 @@ static NSError *mochiLastError;
 	
 	[targetObject setValuesForKeysWithDictionary:createDict];
 	return targetObject;
+}
+
+#pragma mark -
+
++(int)count
+{
+	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
+	req.entity = [self mochiEntityDescription];
+	return [[[Mochi mochiForClass:[self class]] managedObjectContext] countForFetchRequest:req error:&mochiLastError];
+}
+
+#pragma mark -
+#pragma mark Retrieval
+
++(id)withMatchingIndex:(NSValue *)indexValue
+{
+	NSString *ndxName = [self indexName];
+	if (ndxName!=nil)
+	{
+		return [self withAttributeNamed:ndxName matchingValue:indexValue];
+	}
+	return nil;
+}
+
++(NSArray *)allObjects
+{
+	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
+	req.entity = [self mochiEntityDescription];
+	return [[[Mochi mochiForClass:[self class]] managedObjectContext] executeFetchRequest:req error:&mochiLastError];
+}
+
++(id)arrayWithAttributeNamed:(NSString *)field matchingValue:(id)value
+{
+	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
+	req.entity = [self mochiEntityDescription];
+	NSPredicate *predicate = [NSPredicate predicateWithFormat:[NSString stringWithFormat:@"%@ = $V", field, nil]];
+	predicate = [predicate predicateWithSubstitutionVariables:[NSDictionary dictionaryWithObject:value forKey:@"V"]];
+	[req setPredicate:predicate];
+	NSArray *fetchResponse = [[[Mochi mochiForClass:[self class]] managedObjectContext] executeFetchRequest:req error:&mochiLastError];
+	if ((fetchResponse != nil) || ([fetchResponse count]>0))
+	{
+		return [NSArray arrayWithArray:fetchResponse];
+	}
+	return nil;
+}
+
++(id)withAttributeNamed:(NSString *)field matchingValue:(id)value
+{
+	NSArray *all = [self arrayWithAttributeNamed:field matchingValue:value];
+	if ((all==nil) || ([all count]==0)) 
+	{
+		return nil;
+	}
+	return [all objectAtIndex:0];
+}
+
+#pragma mark -
+#pragma mark Fetch Result Controller for retrieval
+
+
++(NSFetchedResultsController *)fetchResultsControllerForAllSorted:(NSArray *)sortDescriptors
+{
+    // Create the fetch request for the entity.
+    NSFetchRequest *req = [[NSFetchRequest alloc] init];
+    [req setEntity:[self mochiEntityDescription]];
+    
+    // TODO move this into a setting in the mochi setup dictionary
+    [req setFetchBatchSize:20];
+	
+	if (sortDescriptors)
+	{
+		req.sortDescriptors = sortDescriptors;
+	}
+	
+	Mochi *classMochi = [Mochi mochiForClass:[self class]];
+	
+	// TODO check out section key path etc.
+    NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:req 
+																				 managedObjectContext:[classMochi managedObjectContext] 
+																				   sectionNameKeyPath:nil 
+																							cacheName:@"Root"];
+	
+    [req release];
+    
+    return [controller autorelease];
+}
+
++(NSFetchedResultsController *)fetchResultsControllerForAllObjects
+{
+	return [self fetchResultsControllerForAllSorted:nil];
+}
+
++(NSFetchedResultsController *)fetchResultsControllerWithAttributeNamed:(NSString *)field matchingValue:(id)value
+{
+	NSFetchRequest *req = [[[NSFetchRequest alloc] init] autorelease];
+	req.entity = [self mochiEntityDescription];
+	NSPredicate *predicate = [NSPredicate predicateWithFormat:[NSString stringWithFormat:@"%@ = $V", field, nil]];
+	predicate = [predicate predicateWithSubstitutionVariables:[NSDictionary dictionaryWithObject:value forKey:@"V"]];
+	[req setPredicate:predicate];
+	
+    // TODO move this into a setting in the mochi setup dictionary
+    [req setFetchBatchSize:20];
+	
+	Mochi *classMochi = [Mochi mochiForClass:[self class]];
+	
+	// TODO check out section key path etc.
+    NSFetchedResultsController *controller = [[NSFetchedResultsController alloc] initWithFetchRequest:req 
+																				 managedObjectContext:[classMochi managedObjectContext] 
+																				   sectionNameKeyPath:nil 
+																							cacheName:@"Root"];
+	
+    [req release];
+    
+    return [controller autorelease];
 }
 
 #pragma mark undefined keys override default behavior

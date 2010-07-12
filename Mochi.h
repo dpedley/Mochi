@@ -41,17 +41,24 @@
 +(NSEntityDescription *)mochiEntityDescription;
 +(NSString *)indexName;
 +(void)setIndexName:(NSString *)value;
+
 +(id)addNew;
 +(id)addNewWithIndex:(NSValue *)indexValue;
-+(id)withMatchingIndex:(NSValue *)indexValue;
-+(id)withAttributeNamed:(NSString *)field matchingValue:(id)value;
-+(int)count;
-+(NSArray *)allObjects;
-+(NSArray *)arrayWithAttributeNamed:(NSString *)field matchingValue:(id)value;
 +(void)save;
 -(void)remove;
 +(void)removeAll;
 +(id)findOrCreateWithDictionary:(NSDictionary *)createDict;
+
++(int)count;
+
++(id)withMatchingIndex:(NSValue *)indexValue;
++(id)withAttributeNamed:(NSString *)field matchingValue:(id)value;
++(NSArray *)allObjects;
++(NSArray *)arrayWithAttributeNamed:(NSString *)field matchingValue:(id)value;
+
++(NSFetchedResultsController *)fetchResultsControllerForAllSorted:(NSArray *)sortDescriptors;
++(NSFetchedResultsController *)fetchResultsControllerForAllObjects;
++(NSFetchedResultsController *)fetchResultsControllerWithAttributeNamed:(NSString *)field matchingValue:(id)value;
 
 @end
 
