@@ -1,8 +1,9 @@
 //
-//  DataRecording.h
-//  Wombilizer
+//  MochiAudioObject.h
+//  HelloBaby
 //
-//  Created by Douglas Pedley on 6/28/10.
+//  Created by Douglas Pedley on 7/13/10.
+//  Copyright 2010 __MyCompanyName__. All rights reserved.
 //
 
 #import <CoreData/CoreData.h>
@@ -16,6 +17,7 @@
 @property (nonatomic, retain) NSData * audio;
 @property (nonatomic, retain) NSNumber * orderIndex;
 @property (nonatomic, retain) NSString * name;
+@property (nonatomic, retain) NSNumber * duration;
 
 @end
 

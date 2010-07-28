@@ -236,7 +236,7 @@ static MochiAudio *sharedInstance = nil;
 	cad.recorder.meteringEnabled = YES;
 
 	// start recording
-	[cad.recorder recordForDuration:(NSTimeInterval) 10];
+	[cad.recorder recordForDuration:(NSTimeInterval) 60];
 }
 
 +(void)stopRecording
@@ -335,6 +335,14 @@ static MochiAudio *sharedInstance = nil;
 	
 	NSURL *url = [NSURL fileURLWithPath:[MochiAudio transientAudioFilePath]];
 	NSError *err = nil;
+	AVAudioPlayer *plr = [[AVAudioPlayer alloc] initWithContentsOfURL:url error:&err];
+	
+	if (err==nil)
+	{
+		recording.duration = [NSNumber numberWithInt:plr.duration];
+	}
+	[plr release];
+	err=nil;
 	
 	NSData *audioData = [NSData dataWithContentsOfFile:[url path] options: 0 error:&err];
 	if(!audioData)
@@ -376,7 +384,8 @@ static MochiAudio *sharedInstance = nil;
 
 +(NSArray *)recordings
 {
-	return [MochiAudioObject allObjects];
+	NSArray *allRecordings = [MochiAudioObject allObjects];
+	return allRecordings;
 }
 
 #pragma mark Note this routinue is suboptimal with the assumption that the list size and memory footprint is within acceptable limits.
