@@ -1,5 +1,11 @@
 MOCHI - Cocoa CoreData library
 
+*************** NOTE NOTE NOTE *******************
+MOCHI has become updated and deprecated, there are many
+newer libraries that accomplish what MOCHI set out to
+do. Try: https://github.com/magicalpanda/MagicalRecord
+*************** NOTE NOTE NOTE *******************
+
 http://dpedley.com/mochi
 
 Mochi is meant to help you use the power of Core Data, without drilling into the science of database and object management. The core data access objects such as NSManagedObjectContext, NSPersistentStoreCoordinator and NSManagedObjectModel are held within the Mochi singleton. These are used by helper functions that are added to your NSManagedObjects that access the Mochi singleton. In essence you can create your objects using XCode's data modeler, and immediately save, delete, find and update the applications database without working with the Core Data stack directly.
